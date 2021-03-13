@@ -1,0 +1,46 @@
+name: Docker build and push
+ 
+on:
+  push:
+    branches:
+    - main 
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron:  '0 0 * * 4'
+
+jobs:
+  docker_build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@master
+      if: github.event_name == 'pull_request' && github.event_name != 'schedule'
+    - name: "Build"
+      env:
+        DOCKER_BUILDKIT: 1
+      if: github.event_name == 'pull_request' && github.event_name != 'schedule'
+      run: |
+        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 -t poad/docker-vscode:latest .
+    - name: Hadolint
+      if: github.event_name == 'pull_request' && github.event_name != 'schedule'
+      uses: brpaz/hadolint-action@master
+  
+  docker_push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@master
+      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+    - name: Build
+      env:
+        DOCKER_BUILDKIT: 1
+      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      run: |
+        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 -t poad/docker-vscode:latest .
+    - name: Push
+      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u poad --password-stdin && \
+        docker push poad/docker-vscode:latest
