@@ -16,16 +16,18 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update -qq \
  && apt-get install --no-install-recommends -qqy \
+    python3-dev \
+    python3-distutils \
+    libpython3-stdlib \
+ && apt-get install --no-install-recommends -qqy \
     apt-transport-https \
     gpg-agent \
+    gnupg2 \
     pkg-config \
     build-essential \
-    gnupg2 \
     git \
     libx11-dev \
     libxkbfile-dev \
-    python3-dev \
-    python3-distutils \
     libpython2.7 \
     libncurses5 \
     libxml2 \
@@ -87,9 +89,9 @@ RUN git clone --depth=1 -b "$(cat /tmp/version.txt)" https://github.com/microsof
 
 WORKDIR /root/vscode
 RUN yarn install
-RUN yarn run compile
-RUN yarn run compile-extensions-build
-RUN yarn compile-web 
+RUN yarn run compile \
+ && yarn run compile-extensions-build \
+ && yarn compile-web 
  
 EXPOSE 8080 8081
 
