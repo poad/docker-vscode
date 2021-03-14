@@ -1,16 +1,6 @@
-FROM buildpack-deps:buster-curl AS version
+ARG DEBIAN_CODENAME="buster"
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-RUN apt-get update -qq \
- && apt-get install --no-install-recommends -qqy \
-    jq \
- && VERSION="$(curl -sSL https://api.github.com/repos/microsoft/vscode/releases/latest | jq -r .tag_name)" \
- && echo "${VERSION}" > /tmp/version.txt
-
-
-
-FROM node:lts-buster-slim AS base
+FROM node:lts-${DEBIAN_CODENAME}-slim AS base
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -78,13 +68,13 @@ RUN apt-get update -qq \
 
 FROM base
 
+ARG VERSION
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 WORKDIR /root
 
-COPY --from=version /tmp/version.txt /tmp/version.txt
-
-RUN git clone --depth=1 -b "$(cat /tmp/version.txt)" https://github.com/microsoft/vscode \
+RUN git clone --depth=1 -b "${VERSION}" https://github.com/microsoft/vscode \
  && rm -rf /tmp/version.txt
 
 WORKDIR /root/vscode
