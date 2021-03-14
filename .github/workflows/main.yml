@@ -26,7 +26,7 @@ jobs:
         sudo apt-get install --no-install-recommends -qqy \
           jq && \
         VERSION="$(curl -sSL https://api.github.com/repos/microsoft/vscode/releases/latest | jq -r .tag_name)" && \
-        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg VERSION="${VERSION}" .
+        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg VERSION="${VERSION}" -t poad/docker-vscode:latest  .
     - name: Hadolint
       if: github.event_name == 'pull_request' && github.event_name != 'schedule'
       uses: brpaz/hadolint-action@master
@@ -46,8 +46,8 @@ jobs:
         sudo apt-get install --no-install-recommends -qqy \
           jq && \
         VERSION="$(curl -sSL https://api.github.com/repos/microsoft/vscode/releases/latest | jq -r .tag_name)" && \
-        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg VERSION="${VERSION}" . && \
-        echo "${VERSION}" >> $GITHUB_ENV
+        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg VERSION="${VERSION}" -t poad/docker-vscode:latest . && \
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
     - name: Push
       env:
         VERSION: ${{ env.VERSION }}
@@ -55,5 +55,6 @@ jobs:
       run: |
         echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u poad --password-stdin && \
         docker push poad/docker-vscode:${VERSION} && \
+        docker tag poad/docker-vscode:${VERSION} poad/docker-vscode:latest
         docker push poad/docker-vscode:latest
 

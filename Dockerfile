@@ -74,8 +74,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 WORKDIR /root
 
-RUN git clone --depth=1 -b "${VERSION}" https://github.com/microsoft/vscode \
- && rm -rf /tmp/version.txt
+RUN git clone --depth=1 -b "${VERSION}" https://github.com/microsoft/vscode
 
 WORKDIR /root/vscode
 RUN yarn install
