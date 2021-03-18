@@ -1,4 +1,8 @@
 ARG DEBIAN_CODENAME="buster"
+ARG VSCODE_VERSION=1.54.3
+ARG CODE_SERVER_VERSION=v3.9.1
+ARG CODE_SERVER_BRANCH=jsjoeio/upgrade-vscode-1.54
+
 
 FROM node:lts-${DEBIAN_CODENAME}-slim AS base
 
@@ -74,22 +78,24 @@ RUN apt-get update -qq \
 
 FROM base AS build
 
-ARG VSCODE_VERSION=1.54.3
-ARG CODE_SERVER_VERSION=v3.9.1
-ARG CODE_SERVER_VBRANCH=jsjoeio/upgrade-vscode-1.54
+ARG VSCODE_VERSION
+ARG CODE_SERVER_VERSION
+ARG CODE_SERVER_BRANCH
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 WORKDIR /root
 
-RUN git clone --depth=1 -b "${CODE_SERVER_VBRANCH}" https://github.com/cdr/code-server.git
+RUN if [ -z CODE_SERVER_BRANCH ]; then \
+      git clone --depth=1 -b "${CODE_SERVER_BRANCH}" https://github.com/cdr/code-server.git \
+    else \
+      git clone --depth=1 -b "${CODE_SERVER_VERSION}" https://github.com/cdr/code-server.git \
+    fi
 
 WORKDIR /root/code-server
 RUN yarn install \
  && yarn --frozen-lockfile \
  && yarn build
-
-FROM build AS release
 
 RUN yarn build:vscode
 RUN yarn release
@@ -97,6 +103,34 @@ RUN yarn release:standalone
 
 RUN yarn package
 
-WORKDIR /root/code-server/release
+FROM node:lts-${DEBIAN_CODENAME}-slim AS release
 
-ENTRYPOINT [ "yarn", "--production" ]
+ARG VSCODE_VERSION
+ARG CODE_SERVER_VERSION
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+WORKDIR /root
+
+
+COPY --from=build "/root/code-server/release-packages/code-server_${CODE_SERVER_VERSION}_amd64.deb" "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb"
+
+# https://wiki.debian.org/Locale#Manually
+RUN sed -i "s/# en_US.UTF-8/en_US.UTF-8/" /etc/locale.gen \
+  && locale-gen
+ENV LANG=en_US.UTF-8
+
+RUN adduser --gecos '' --disabled-password coder && \
+  echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
+
+RUN dpkg -i "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb" \
+ && rm -rf "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb"
+
+EXPOSE 8080
+# This way, if someone sets $DOCKER_USER, docker-exec will still work as
+# the uid will remain the same. note: only relevant if -u isn't passed to
+# docker-run.
+USER 1000
+ENV USER=coder
+WORKDIR /home/coder
+ENTRYPOINT ["dumb-init", "/usr/bin/code-server", "--bind-addr", "0.0.0.0:8080", "."]
