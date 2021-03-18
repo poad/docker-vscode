@@ -1,6 +1,6 @@
 ARG DEBIAN_CODENAME="buster"
 ARG VSCODE_VERSION=1.54.3
-ARG CODE_SERVER_VERSION=v3.9.1
+ARG CODE_SERVER_VERSION=3.9.1
 ARG CODE_SERVER_BRANCH=jsjoeio/upgrade-vscode-1.54
 
 
@@ -86,22 +86,17 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 WORKDIR /root
 
-RUN if [ -z CODE_SERVER_BRANCH ]; then \
-      git clone --depth=1 -b "${CODE_SERVER_BRANCH}" https://github.com/cdr/code-server.git \
-    else \
-      git clone --depth=1 -b "${CODE_SERVER_VERSION}" https://github.com/cdr/code-server.git \
-    fi
+RUN if [ -n "${CODE_SERVER_BRANCH}" ]; then BRANCH_TAG="${CODE_SERVER_BRANCH}"; else BRANCH_TAG="v${CODE_SERVER_VERSION}"; fi \
+ && git clone --depth=1 -b "${BRANCH_TAG}" https://github.com/cdr/code-server.git
 
 WORKDIR /root/code-server
 RUN yarn install \
  && yarn --frozen-lockfile \
- && yarn build
-
-RUN yarn build:vscode
-RUN yarn release
-RUN yarn release:standalone
-
-RUN yarn package
+ && yarn build \
+ && yarn build:vscode \
+ && yarn release \
+ && yarn release:standalone \
+ && yarn package
 
 FROM node:lts-${DEBIAN_CODENAME}-slim AS release
 
@@ -115,18 +110,25 @@ WORKDIR /root
 
 COPY --from=build "/root/code-server/release-packages/code-server_${CODE_SERVER_VERSION}_amd64.deb" "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb"
 
-# https://wiki.debian.org/Locale#Manually
-RUN sed -i "s/# en_US.UTF-8/en_US.UTF-8/" /etc/locale.gen \
-  && locale-gen
+# # https://wiki.debian.org/Locale#Manually
+# RUN sed -i "s/# en_US.UTF-8/en_US.UTF-8/" /etc/locale.gen \
+#   && locale-gen
+
 ENV LANG=en_US.UTF-8
 
-RUN adduser --gecos '' --disabled-password coder && \
-  echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/nopasswd
+RUN adduser --gecos '' --disabled-password coder
 
 RUN dpkg -i "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb" \
  && rm -rf "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb"
 
+RUN apt-get update -qq \
+ && apt-get install --no-install-recommends -qqy \
+    dumb-init \
+ && rm -rf /var/lib/apt /var/log/apt
+
+
 EXPOSE 8080
+
 # This way, if someone sets $DOCKER_USER, docker-exec will still work as
 # the uid will remain the same. note: only relevant if -u isn't passed to
 # docker-run.
