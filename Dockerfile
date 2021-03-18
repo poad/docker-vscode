@@ -74,14 +74,15 @@ RUN apt-get update -qq \
 
 FROM base AS build
 
-ARG VERSION=1.54.3
+ARG VSCODE_VERSION=1.54.3
 ARG CODE_SERVER_VERSION=v3.9.1
+ARG CODE_SERVER_VBRANCH=jsjoeio/upgrade-vscode-1.54
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 WORKDIR /root
 
-RUN git clone --depth=1 -b jsjoeio/upgrade-vscode-1.54 https://github.com/cdr/code-server.git
+RUN git clone --depth=1 -b "${CODE_SERVER_VBRANCH}" https://github.com/cdr/code-server.git
 
 WORKDIR /root/code-server
 RUN yarn install \
