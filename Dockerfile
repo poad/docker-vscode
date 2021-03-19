@@ -1,10 +1,11 @@
 ARG DEBIAN_CODENAME="buster"
-ARG VSCODE_VERSION=1.54.3
+ARG VSCODE_VERSION_BASE=1.54
+ARG VSCODE_VERSION=${VSCODE_VERSION_BASE}.3
 ARG CODE_SERVER_VERSION=3.9.1
 ARG CODE_SERVER_BRANCH=jsjoeio/upgrade-vscode-1.54
 
 
-FROM node:lts-${DEBIAN_CODENAME}-slim AS base
+FROM node:lts-${DEBIAN_CODENAME}-slim AS build-base
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -76,9 +77,9 @@ RUN apt-get update -qq \
  && update-alternatives --install /usr/bin/python python /usr/bin/python3 1 \
  && rm -rf /var/lib/apt /var/log/apt
 
-FROM base AS build
+FROM build-base AS clone
 
-ARG VSCODE_VERSION
+ARG VSCODE_VERSION_BASE
 ARG CODE_SERVER_VERSION
 ARG CODE_SERVER_BRANCH
 
@@ -89,8 +90,11 @@ WORKDIR /root
 RUN if [ -n "${CODE_SERVER_BRANCH}" ]; then BRANCH_TAG="${CODE_SERVER_BRANCH}"; else BRANCH_TAG="v${CODE_SERVER_VERSION}"; fi \
  && git clone --depth=1 -b "${BRANCH_TAG}" https://github.com/cdr/code-server.git
 
+FROM clone AS build
+
 WORKDIR /root/code-server
 RUN yarn install \
+ && echo "${VSCODE_VERSION_BASE}" > yarn update:vscode\
  && yarn --frozen-lockfile \
  && yarn build \
  && yarn build:vscode \
@@ -100,7 +104,6 @@ RUN yarn install \
 
 FROM node:lts-${DEBIAN_CODENAME}-slim AS release
 
-ARG VSCODE_VERSION
 ARG CODE_SERVER_VERSION
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
