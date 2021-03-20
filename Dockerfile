@@ -94,7 +94,7 @@ FROM clone AS build
 
 WORKDIR /root/code-server
 RUN yarn install \
- && echo "${VSCODE_VERSION_BASE}" > yarn update:vscode\
+#  && echo "${VSCODE_VERSION_BASE}" > yarn update:vscode\
  && yarn --frozen-lockfile \
  && yarn build \
  && yarn build:vscode \
@@ -120,6 +120,8 @@ COPY --from=build "/root/code-server/release-packages/code-server_${CODE_SERVER_
 ENV LANG=en_US.UTF-8
 
 RUN adduser --gecos '' --disabled-password coder
+RUN mkdir -p /home/coder \
+ && chown -R 1000:1000 /home/coder
 
 RUN dpkg -i "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb" \
  && rm -rf "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb"
@@ -129,6 +131,9 @@ RUN apt-get update -qq \
     dumb-init \
  && rm -rf /var/lib/apt /var/log/apt
 
+COPY ./assets/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 8080
 
@@ -138,4 +143,5 @@ EXPOSE 8080
 USER 1000
 ENV USER=coder
 WORKDIR /home/coder
-ENTRYPOINT ["dumb-init", "/usr/bin/code-server", "--bind-addr", "0.0.0.0:8080", "."]
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
