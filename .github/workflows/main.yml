@@ -45,9 +45,9 @@ jobs:
         sudo apt-get update -qq && \
         sudo apt-get install --no-install-recommends -qqy \
           jq && \
-        VSCODE_VERSION="$(curl -sSL https://api.github.com/repos/microsoft/vscode/releases/latest | jq -r .tag_name)" && \
+        VSCODE_VERSION_BASE="$(curl -sSL https://api.github.com/repos/microsoft/vscode/releases/latest | jq -r .tag_name)" && \
         CODE_SERVER_VERSION="$(curl -sSL https://api.github.com/repos/cdr/code-server/releases/latest | jq -r .tag_name)" && \
-        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg VSCODE_VERSION="$(echo "${VSCODE_VERSION}" | cut -d'.' -f 1-2)" --build-arg CODE_SERVER_VERSION="${CODE_SERVER_VERSION}" -t poad/docker-vscode:${CODE_SERVER_VERSION}-${VSCODE_VERSION} . && \
+        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg VSCODE_VERSION="${VSCODE_VERSION}" --build-arg VSCODE_VERSION_BASE="$(echo "${VSCODE_VERSION}" | cut -d'.' -f 1-2)" --build-arg CODE_SERVER_VERSION="${CODE_SERVER_VERSION}" --build-arg CODE_SERVER_BRANCH=jsjoeio/upgrade-vscode-1.54 -t poad/docker-vscode:${CODE_SERVER_VERSION}-${VSCODE_VERSION} . && \
         echo "VSCODE_VERSION=${VSCODE_VERSION}" >> $GITHUB_ENV
         echo "CODE_SERVER_VERSION=${CODE_SERVER_VERSION}" >> $GITHUB_ENV
     - name: Push
