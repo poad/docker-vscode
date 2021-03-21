@@ -97,7 +97,8 @@ RUN yarn install \
  && yarn build:vscode \
  && yarn release \
  && yarn release:standalone \
- && yarn package
+ && yarn package \
+ && cp -pR /root/code-server/release-packages/code-server*$(dpkg --print-architecture).deb /root/code-server/release-packages/code-server_${CODE_SERVER_VERSION}.deb
 
 FROM node:lts-${DEBIAN_CODENAME}-slim AS release
 
@@ -108,7 +109,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 WORKDIR /root
 
 
-COPY --from=build "/root/code-server/release-packages/code-server_${CODE_SERVER_VERSION}_amd64.deb" "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb"
+COPY --from=build "/root/code-server/release-packages/code-server_${CODE_SERVER_VERSION}.deb" "/usr/src/code-server_${CODE_SERVER_VERSION}.deb"
 
 # # https://wiki.debian.org/Locale#Manually
 # RUN sed -i "s/# en_US.UTF-8/en_US.UTF-8/" /etc/locale.gen \
@@ -120,8 +121,8 @@ RUN adduser --gecos '' --disabled-password coder
 RUN mkdir -p /home/coder \
  && chown -R 1000:1000 /home/coder
 
-RUN dpkg -i "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb" \
- && rm -rf "/usr/src/code-server_${CODE_SERVER_VERSION}_amd64.deb"
+RUN dpkg -i "/usr/src/code-server_${CODE_SERVER_VERSION}.deb" \
+ && rm -rf "/usr/src/code-server_${CODE_SERVER_VERSION}.deb"
 
 RUN apt-get update -qq \
  && apt-get install --no-install-recommends -qqy \
