@@ -90,15 +90,25 @@ RUN if [ -n "${CODE_SERVER_BRANCH}" ]; then BRANCH_TAG="${CODE_SERVER_BRANCH}"; 
 FROM clone AS build
 
 WORKDIR /root/code-server
+
+# RUN yarn install \
+#  && echo "${VSCODE_VERSION_BASE}" > yarn update:vscode \
+#  && yarn --frozen-lockfile \
+#  && yarn build \
+#  && yarn build:vscode \
+#  && yarn release \
+#  && yarn release:standalone \
+#  && yarn package \
+#  && cp -pR "/root/code-server/release-packages/code-server*$(dpkg --print-architecture).deb" /root/code-server/release-packages/code-server_${CODE_SERVER_VERSION}.deb
+
 RUN yarn install \
-#  && echo "${VSCODE_VERSION_BASE}" > yarn update:vscode\
  && yarn --frozen-lockfile \
  && yarn build \
  && yarn build:vscode \
  && yarn release \
  && yarn release:standalone \
  && yarn package \
- && cp -pR /root/code-server/release-packages/code-server*$(dpkg --print-architecture).deb /root/code-server/release-packages/code-server_${CODE_SERVER_VERSION}.deb
+ && cp -pR /root/code-server/release-packages/code-server*"$(dpkg --print-architecture).deb" "/root/code-server/release-packages/code-server_${CODE_SERVER_VERSION}.deb"
 
 FROM node:lts-${DEBIAN_CODENAME}-slim AS release
 
@@ -127,6 +137,9 @@ RUN dpkg -i "/usr/src/code-server_${CODE_SERVER_VERSION}.deb" \
 RUN apt-get update -qq \
  && apt-get install --no-install-recommends -qqy \
     dumb-init \
+    python3-distutils \
+    libpython3-stdlib \
+    libssl1.1 \
  && rm -rf /var/lib/apt /var/log/apt
 
 COPY ./assets/entrypoint.sh /usr/local/bin/entrypoint.sh
