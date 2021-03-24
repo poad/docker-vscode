@@ -36,6 +36,7 @@ EXTENTIONS_DIR="${BASE_DIR_PATH}/extensions"
 WORKSPACE_DIR="${BASE_DIR_PATH}/workspace"
 
 if [ ! -e "${HOME}/.config/code-server/config.yaml" ]; then
+mkdir -p "${HOME}/.config/code-server/"
 cat << EOS > "${HOME}/.config/code-server/config.yaml"
 bind-addr: ${BIND}
 auth: ${AUTH}
@@ -43,6 +44,8 @@ ${PASSWORD_YAML}
 cert: false
 EOS
 fi
+
+cat "${HOME}/.config/code-server/config.yaml"
 
 /usr/bin/code-server \
     --bind-addr "${BIND}" \

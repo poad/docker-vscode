@@ -121,11 +121,9 @@ WORKDIR /root
 
 COPY --from=build "/root/code-server/release-packages/code-server_${CODE_SERVER_VERSION}.deb" "/usr/src/code-server_${CODE_SERVER_VERSION}.deb"
 
-# # https://wiki.debian.org/Locale#Manually
-# RUN sed -i "s/# en_US.UTF-8/en_US.UTF-8/" /etc/locale.gen \
-#   && locale-gen
-
 ENV LANG=en_US.UTF-8
+
+RUN adduser --gecos '' --disabled-password coder
 
 RUN dpkg -i "/usr/src/code-server_${CODE_SERVER_VERSION}.deb" \
  && rm -rf "/usr/src/code-server_${CODE_SERVER_VERSION}.deb"
@@ -142,13 +140,13 @@ COPY ./assets/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-EXPOSE 8080
+RUN mkdir -p /home/coder/.config/code-server/ \
+ && chown -R coder:coder /home/coder
 
-# This way, if someone sets $DOCKER_USER, docker-exec will still work as
-# the uid will remain the same. note: only relevant if -u isn't passed to
-# docker-run.
-USER node
-ENV USER=node
-WORKDIR /home/node
+USER coder
+ENV USER=coder
+WORKDIR /home/coder
+
+EXPOSE 8080
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
