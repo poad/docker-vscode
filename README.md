@@ -1,4 +1,5 @@
 # docker-vscode
+[![Docker build and push](https://github.com/poad/docker-vscode/actions/workflows/main.yml/badge.svg)](https://github.com/poad/docker-vscode/actions/workflows/main.yml)
 
 ## usage
 
