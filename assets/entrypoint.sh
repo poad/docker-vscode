@@ -47,7 +47,7 @@ fi
 
 cat "${HOME}/.config/code-server/config.yaml"
 
-/usr/bin/code-server \
+code-server \
     --bind-addr "${BIND}" \
     --user-data-dir "${USER_DATA_DIR}" \
     --extensions-dir "${EXTENTIONS_DIR}" \
