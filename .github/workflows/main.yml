@@ -20,7 +20,6 @@ jobs:
     - name: "Build"
       env:
         DOCKER_BUILDKIT: 1
-        # CODE_SERVER_BRANCH: ""
         # CODE_SERVER_VERSION: 3.9.2
       if: github.event_name == 'pull_request' && github.event_name != 'schedule'
       run: |
@@ -28,7 +27,7 @@ jobs:
         sudo apt-get install --no-install-recommends -qqy \
           jq && \
         [ -n "${CODE_SERVER_VERSION}" ] || CODE_SERVER_VERSION="$(curl -sSL https://api.github.com/repos/cdr/code-server/releases/latest | jq -r .tag_name | cut -d'v' -f2)" && \
-        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg CODE_SERVER_VERSION="${CODE_SERVER_VERSION}" --build-arg CODE_SERVER_BRANCH="${CODE_SERVER_BRANCH}" -t poad/docker-vscode:latest  .
+        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg CODE_VERSION="${CODE_SERVER_VERSION}" -t poad/docker-vscode:latest  .
     - name: Hadolint
       if: github.event_name == 'pull_request' && github.event_name != 'schedule'
       uses: brpaz/hadolint-action@master
@@ -42,7 +41,6 @@ jobs:
     - name: Build
       env:
         DOCKER_BUILDKIT: 1
-        # CODE_SERVER_BRANCH: ""
         # CODE_SERVER_VERSION: 3.9.2
       if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
       run: |
@@ -50,7 +48,7 @@ jobs:
         sudo apt-get install --no-install-recommends -qqy \
           jq && \
         [ -n "${CODE_SERVER_VERSION}" ] || CODE_SERVER_VERSION="$(curl -sSL https://api.github.com/repos/cdr/code-server/releases/latest | jq -r .tag_name | cut -d'v' -f2)" && \
-        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg CODE_SERVER_VERSION="${CODE_SERVER_VERSION}" --build-arg CODE_SERVER_BRANCH="${CODE_SERVER_BRANCH}" -t poad/docker-vscode:${CODE_SERVER_VERSION} . && \
+        docker build --cache-from=poad/docker-vscode:latest --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg CODE_VERSION="${CODE_SERVER_VERSION}" -t poad/docker-vscode:${CODE_SERVER_VERSION} . && \
         echo "CODE_SERVER_VERSION=${CODE_SERVER_VERSION}" >> $GITHUB_ENV
     - name: Push
       env:
