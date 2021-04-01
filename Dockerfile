@@ -16,11 +16,11 @@ RUN adduser --gecos '' --disabled-password coder
 RUN apt-get update -qq \
  && apt-get install --no-install-recommends -qqy \
     software-properties-common \
-#  && add-apt-repository ppa:deadsnakes/ppa -y \
+ && add-apt-repository ppa:deadsnakes/ppa -y \
  && curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}" | bash - \
  && apt-get install --no-install-recommends -qqy \
-   #  python3.9-distutils \
-   #  libpython3.9-stdlib \
+    python3.9-distutils \
+    libpython3.9-stdlib \
     nodejs \
  && rm -rf /var/lib/apt /var/log/apt /tmp/node_setup.sh \
  && npm i -g yarn node-gyp \

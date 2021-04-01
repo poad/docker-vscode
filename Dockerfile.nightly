@@ -1,0 +1,152 @@
+ARG DEBIAN_CODENAME="buster"
+ARG CODE_SERVER_BRANCH="main"
+ARG DEBIAN_CODENAME="focal"
+ARG NODE_VERSION="14.x"
+ARG VSCODE_VERSION_BASE
+
+FROM buildpack-deps:${DEBIAN_CODENAME}-curl AS node
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update -qq \
+ && apt-get install --no-install-recommends -qqy \
+    software-properties-common \
+ && add-apt-repository ppa:deadsnakes/ppa -y \
+ && curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}" | bash - \
+ && apt-get install --no-install-recommends -qqy \
+    python3.9-distutils \
+    libpython3.9-stdlib \
+    nodejs \
+ && rm -rf /var/lib/apt /var/log/apt /tmp/node_setup.sh \
+ && npm i -g yarn node-gyp \
+ && update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+
+FROM node AS build-base
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update -qq \
+ && apt-get install --no-install-recommends -qqy \
+    apt-transport-https \
+    gpg-agent \
+    gnupg2 \
+    pkg-config \
+    build-essential \
+    git \
+    libx11-dev \
+    libxkbfile-dev \
+    libpython2.7 \
+    libncurses5 \
+    libxml2 \
+    ca-certificates \
+    gconf-service \
+    libexpat1 \
+    libssl1.1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libcairo2 \
+    libcups2 \
+    libdbus-1-3 \
+    libexpat1 \
+    libfontconfig1 \
+    libgcc1 \
+    libgconf-2-4 \
+    libgdk-pixbuf2.0-0 \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libnspr4 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libstdc++6 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libx11-dev \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxss1 \
+    libxtst6 \
+    libappindicator1 \
+    libnss3 \
+    libasound2 \
+    libatk1.0-0 \
+    libc6 \
+    fonts-liberation \
+    lsb-release \
+    xdg-utils \
+    curl \
+    wget \
+    jq \
+    rsync \
+    libsecret-1-0 \
+    gettext-base \
+ && curl -sSLo /tmp/nfpm_amd64.deb https://github.com/goreleaser/nfpm/releases/download/v1.9.0/nfpm_amd64.deb \
+ && dpkg -i /tmp/nfpm_amd64.deb \
+ && update-alternatives --install /usr/bin/python python /usr/bin/python3 1 \
+ && rm -rf /var/lib/apt /var/log/apt
+
+
+FROM build-base AS build
+
+ARG CODE_SERVER_BRANCH
+ARG VSCODE_VERSION_BASE
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+WORKDIR /root/code-server
+
+RUN git clone --depth=1 -b "${CODE_SERVER_BRANCH}" https://github.com/cdr/code-server.git \
+ && yarn install \
+ && [ -n "${VSCODE_VERSION_BASE}" ] && echo "${VSCODE_VERSION_BASE}" > yarn update:vscode \
+ && yarn --frozen-lockfile \
+ && yarn build \
+ && yarn build:vscode \
+ && yarn release \
+ && yarn release:standalone \
+ && yarn package \
+ && cp -pR "/root/code-server/release-packages/code-server*$(dpkg --print-architecture).deb" /root/code-server/release-packages/code-server.deb
+
+FROM node AS release
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+WORKDIR /root
+
+
+COPY --from=build "/root/code-server/release-packages/code-server.deb" "/usr/src/code-server.deb"
+
+# # https://wiki.debian.org/Locale#Manually
+# RUN sed -i "s/# en_US.UTF-8/en_US.UTF-8/" /etc/locale.gen \
+#   && locale-gen
+
+ENV LANG=en_US.UTF-8
+
+RUN dpkg -i "/usr/src/code-server.deb" \
+ && rm -rf "/usr/src/code-server.deb"
+
+RUN apt-get update -qq \
+ && apt-get install --no-install-recommends -qqy \
+    dumb-init \
+    python3-distutils \
+    libpython3-stdlib \
+    libssl1.1 \
+ && rm -rf /var/lib/apt /var/log/apt
+
+COPY ./assets/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+EXPOSE 8080
+
+# This way, if someone sets $DOCKER_USER, docker-exec will still work as
+# the uid will remain the same. note: only relevant if -u isn't passed to
+# docker-run.
+USER node
+ENV USER=node
+WORKDIR /home/node
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

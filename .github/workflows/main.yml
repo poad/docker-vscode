@@ -60,3 +60,97 @@ jobs:
         docker tag poad/docker-vscode:${CODE_SERVER_VERSION} poad/docker-vscode:latest
         docker push poad/docker-vscode:latest
 
+  docker_build_nightly:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@master
+      if: github.event_name == 'pull_request' && github.event_name != 'schedule'
+    - name: "Build"
+      env:
+        DOCKER_BUILDKIT: 1
+        CODE_SERVER_BRANCH: main
+      if: github.event_name == 'pull_request' && github.event_name != 'schedule'
+      run: |
+        TAG=nightly-$(date "+%Y.%m.%d")
+        docker build --cache-from="poad/docker-vscode:${TAG}" --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg CODE_SERVER_BRANCH="${CODE_SERVER_BRANCH}" -t "poad/docker-vscode:${TAG}"  .
+    - name: Hadolint
+      if: github.event_name == 'pull_request' && github.event_name != 'schedule'
+      uses: brpaz/hadolint-action@master
+      with:
+        dockerfile: Dockerfile.nightly
+
+  docker_push_nightly:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@master
+      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+    - name: Build
+      env:
+        DOCKER_BUILDKIT: 1
+        CODE_SERVER_BRANCH: main
+      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      run: |
+        TAG=nightly-$(date "+%Y.%m.%d")
+        docker build --cache-from="poad/docker-vscode:${TAG}" --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg CODE_SERVER_BRANCH="${CODE_SERVER_BRANCH}" -t "poad/docker-vscode:${TAG}"  .
+        echo "TAG=${TAG}" >> $GITHUB_ENV
+    - name: Push
+      env:
+        TAG: ${{ env.TAG }}
+      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u poad --password-stdin && \
+        docker push poad/docker-vscode:${TAG}
+
+  docker_build_nightly_latest_vscode:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@master
+      if: github.event_name == 'pull_request' && github.event_name != 'schedule'
+    - name: "Build"
+      env:
+        DOCKER_BUILDKIT: 1
+        CODE_SERVER_BRANCH: main
+      if: github.event_name == 'pull_request' && github.event_name != 'schedule'
+      run: |
+        sudo apt-get update -qq && \
+        sudo apt-get install --no-install-recommends -qqy \
+           jq && \
+        VSCODE_VERSION="$(curl -sSL https://api.github.com/repos/microsoft/vscode/releases/latest | jq -r .tag_name)" && \
+        TAG=nightly-$(date "+%Y.%m.%d")-"${VSCODE_VERSION}"
+        docker build --cache-from="poad/docker-vscode:${TAG}" --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg VSCODE_VERSION_BASE="$(echo "${VSCODE_VERSION}" | cut -d'.' -f 1-2)" --build-arg CODE_SERVER_BRANCH="${CODE_SERVER_BRANCH}" -t "poad/docker-vscode:${TAG}"  .
+    - name: Hadolint
+      if: github.event_name == 'pull_request' && github.event_name != 'schedule'
+      uses: brpaz/hadolint-action@master
+      with:
+        dockerfile: Dockerfile.nightly
+
+  docker_push_nightly_latest_vscode:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@master
+      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+    - name: Build
+      env:
+        DOCKER_BUILDKIT: 1
+        CODE_SERVER_BRANCH: main
+      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      run: |
+        sudo apt-get update -qq && \
+        sudo apt-get install --no-install-recommends -qqy \
+           jq && \
+        VSCODE_VERSION="$(curl -sSL https://api.github.com/repos/microsoft/vscode/releases/latest | jq -r .tag_name)" && \
+        TAG=nightly-$(date "+%Y.%m.%d")-"${VSCODE_VERSION}"
+        docker build --cache-from="poad/docker-vscode:${TAG}" --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg VSCODE_VERSION_BASE="$(echo "${VSCODE_VERSION}" | cut -d'.' -f 1-2)" --build-arg CODE_SERVER_BRANCH="${CODE_SERVER_BRANCH}" -t "poad/docker-vscode:${TAG}"  .
+        echo "TAG=${TAG}" >> $GITHUB_ENV
+    - name: Push
+      env:
+        TAG: ${{ env.TAG }}
+      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u poad --password-stdin && \
+        docker push poad/docker-vscode:${TAG}
+
