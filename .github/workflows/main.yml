@@ -8,7 +8,7 @@ on:
     branches:
       - main
   schedule:
-    - cron:  '0 0 * * 4'
+    - cron:  '0 0 * * *'
 
 jobs:
   docker_build:
@@ -20,7 +20,7 @@ jobs:
     - name: "Build"
       env:
         DOCKER_BUILDKIT: 1
-        # CODE_SERVER_VERSION: 3.9.2
+        # CODE_SERVER_VERSION: 3.9.3
       if: github.event_name == 'pull_request' && github.event_name != 'schedule'
       run: |
         sudo apt-get update -qq && \
