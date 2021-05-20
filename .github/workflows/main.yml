@@ -37,12 +37,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      if: github.event_name != 'pull_request'
     - name: Build
       env:
         DOCKER_BUILDKIT: 1
         # CODE_SERVER_VERSION: 3.9.2
-      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      if: github.event_name != 'pull_request'
       run: |
         sudo apt-get update -qq && \
         sudo apt-get install --no-install-recommends -qqy \
@@ -53,7 +53,7 @@ jobs:
     - name: Push
       env:
         CODE_SERVER_VERSION: ${{ env.CODE_SERVER_VERSION }}
-      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      if: github.event_name != 'pull_request'
       run: |
         echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u poad --password-stdin && \
         docker push poad/docker-vscode:${CODE_SERVER_VERSION} && \
@@ -85,12 +85,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      if: github.event_name != 'pull_request'
     - name: Build
       env:
         DOCKER_BUILDKIT: 1
         CODE_SERVER_BRANCH: main
-      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      if: github.event_name != 'pull_request'
       run: |
         TAG=nightly-$(date "+%Y.%m.%d")
         docker build --cache-from="poad/docker-vscode:${TAG}" --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg CODE_SERVER_BRANCH="${CODE_SERVER_BRANCH}" -t "poad/docker-vscode:${TAG}"  .
@@ -98,7 +98,7 @@ jobs:
     - name: Push
       env:
         TAG: ${{ env.TAG }}
-      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      if: github.event_name != 'pull_request'
       run: |
         echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u poad --password-stdin && \
         docker push poad/docker-vscode:${TAG}
@@ -132,12 +132,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      if: github.event_name != 'pull_request'
     - name: Build
       env:
         DOCKER_BUILDKIT: 1
         CODE_SERVER_BRANCH: main
-      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      if: github.event_name != 'pull_request'
       run: |
         sudo apt-get update -qq && \
         sudo apt-get install --no-install-recommends -qqy \
@@ -149,7 +149,7 @@ jobs:
     - name: Push
       env:
         TAG: ${{ env.TAG }}
-      if: github.event_name != 'pull_request' && github.event_name != 'schedule' && env.CHANGE_STATE != 'changed'
+      if: github.event_name != 'pull_request'
       run: |
         echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u poad --password-stdin && \
         docker push poad/docker-vscode:${TAG}
